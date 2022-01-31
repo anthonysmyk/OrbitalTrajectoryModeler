@@ -40,7 +40,7 @@ public class Trajectory : MonoBehaviour
     void Start()
     {
         //Time.timeScale = 4.0f;
-        Time.fixedDeltaTime = 0.1f;
+        //Time.fixedDeltaTime = 0.1f;
         List<UnityEngine.Vector3> vectors1 = new List<UnityEngine.Vector3>();
         List<UnityEngine.Vector3> vectors2 = new List<UnityEngine.Vector3>();
         List<UnityEngine.Vector3> vectors3 = new List<UnityEngine.Vector3>();
@@ -62,7 +62,7 @@ public class Trajectory : MonoBehaviour
         initialize();
         thrustChecker();
         normalizeTime();
-        
+
     }
 
     // Update is called once per frame
@@ -70,18 +70,33 @@ public class Trajectory : MonoBehaviour
     {
         
         newTime += Time.deltaTime;
-        if(newTime > oldTime + 0.01)
+        //Debug.Log(newTime);
+        if (newTime > oldTime + 0.01)
         {
-            for(BigInteger i = prevCycleEnd; i < prevCycleEnd + cycles; i++)
+            for (BigInteger i = prevCycleEnd; i < prevCycleEnd + cycles; i++)
             {
-                for(int j = 0; j < 4; j++)
+                for (int j = 0; j < 4; j++)
                 {
-                    if(trackers[j] < vectors[j].Count)
+                    if (trackers[j] < vectors[j].Count)
                     {
-                        if(times[j][trackers[j]] == i)
+                        if (times[j][trackers[j]] == i)
                         {
                             trails[j].AddPosition(vectors[j][trackers[j]]);
                             objects[j].transform.position = vectors[j][trackers[j]];
+                            
+                            if(j==0 && trackers[j] < thrusts.Count-1)
+                            {
+                                if(thrusts[trackers[j]])
+                                {
+                                    trails[0].startColor = Color.red;
+                                    trails[0].endColor = Color.red;
+                                } else
+                                {
+                                    trails[0].startColor = Color.blue;
+                                    trails[0].endColor = Color.blue;
+                                }
+                            }
+                            
                             trackers[j]++;
                         }
                     }
@@ -90,6 +105,7 @@ public class Trajectory : MonoBehaviour
             prevCycleEnd += cycles;
             oldTime = newTime;
         }
+        
     }
 
     void initialize()
@@ -100,7 +116,7 @@ public class Trajectory : MonoBehaviour
             for (int j = 1; j < csvLines.Length; j++)
             {
                 string[] lineData = csvLines[j].Split(',');
-                vectors[i].Add(new UnityEngine.Vector3(float.Parse(lineData[0]), float.Parse(lineData[1]), float.Parse(lineData[2])));
+                vectors[i].Add(new UnityEngine.Vector3(float.Parse(lineData[0])/10, float.Parse(lineData[2]) / 10 + 30, float.Parse(lineData[1]) / 10)); 
             }
         }
     }
@@ -115,7 +131,7 @@ public class Trajectory : MonoBehaviour
                 string[] lineData = csvLines[j].Split(',');
                 if (i == 0)
                 {
-                    if (lineData[4].Length > 4)
+                    if (lineData[4].Length > 5)
                     {
                         thrusts.Add(false);
                     }
@@ -123,6 +139,7 @@ public class Trajectory : MonoBehaviour
                     {
                         thrusts.Add(true);
                     }
+                    
                 }
             }
         }
