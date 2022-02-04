@@ -28,6 +28,7 @@ public class Trajectory : MonoBehaviour
     public TrailRenderer trail2;
     public TrailRenderer trail3;
     public TrailRenderer trail4;
+    public TrailRenderer trailT;
 
     float oldTime = -1;
     float newTime = 0;
@@ -58,6 +59,8 @@ public class Trajectory : MonoBehaviour
         thrusts = new List<Boolean>();
         files = new List<TextAsset> { file1, file2, file3, file4 };
         trails = new List<TrailRenderer> { trail1, trail2, trail3, trail4 };
+
+        //trailT = Instantiate();
 
         initialize();
         thrustChecker();
@@ -95,6 +98,7 @@ public class Trajectory : MonoBehaviour
                                     trails[0].startColor = Color.blue;
                                     trails[0].endColor = Color.blue;
                                 }
+                                //trailT.AddPosition(vectors[j][trackers[j]]);
                             }
                             
                             trackers[j]++;
@@ -116,7 +120,7 @@ public class Trajectory : MonoBehaviour
             for (int j = 1; j < csvLines.Length; j++)
             {
                 string[] lineData = csvLines[j].Split(',');
-                vectors[i].Add(new UnityEngine.Vector3(float.Parse(lineData[0])/10, float.Parse(lineData[2]) / 10 + 30, float.Parse(lineData[1]) / 10)); 
+                vectors[i].Add(new UnityEngine.Vector3(float.Parse(lineData[0])/10 - 10, float.Parse(lineData[2]) / 10 + 20, float.Parse(lineData[1]) / 10 + 20)); 
             }
         }
     }
