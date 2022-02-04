@@ -60,12 +60,13 @@ public class Trajectory : MonoBehaviour
         files = new List<TextAsset> { file1, file2, file3, file4 };
         trails = new List<TrailRenderer> { trail1, trail2, trail3, trail4 };
 
-        //trailT = Instantiate();
 
         initialize();
         thrustChecker();
         normalizeTime();
 
+        
+        
     }
 
     // Update is called once per frame
@@ -84,24 +85,35 @@ public class Trajectory : MonoBehaviour
                     {
                         if (times[j][trackers[j]] == i)
                         {
+
                             trails[j].AddPosition(vectors[j][trackers[j]]);
                             objects[j].transform.position = vectors[j][trackers[j]];
-                            
-                            if(j==0 && trackers[j] < thrusts.Count-1)
+                            trails[j].transform.position = vectors[j][trackers[j]];
+
+
+                            if (j==0 && trackers[j] < thrusts.Count-1)
                             {
-                                if(thrusts[trackers[j]])
+
+                                trailT.AddPosition(vectors[j][trackers[j]]);
+                                trailT.transform.position = vectors[j][trackers[j]];
+                                if (thrusts[trackers[j]])
                                 {
-                                    trails[0].startColor = Color.red;
-                                    trails[0].endColor = Color.red;
-                                } else
-                                {
-                                    trails[0].startColor = Color.blue;
-                                    trails[0].endColor = Color.blue;
+                                    trailT.startColor = new Color(1, 0, 0, 1);
+                                    trailT.endColor = new Color(1, 0, 0, 1);
                                 }
-                                //trailT.AddPosition(vectors[j][trackers[j]]);
+                                else
+                                {
+                                    trailT.startColor = new Color(1, 0, 0, 0);
+                                    trailT.endColor = new Color(1, 0, 0, 0);
+                                }
                             }
+
                             
                             trackers[j]++;
+                            if(trackers[0]+1 > vectors[0].Count)
+                            {
+                                obj1.transform.localScale = new UnityEngine.Vector3(0, 0, 0);
+                            }
                         }
                     }
                 }
