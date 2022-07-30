@@ -4,22 +4,28 @@ using UnityEngine;
 using System;
 using System.Numerics;
 using System.IO;
-
-
-public class Trajectory : MonoBehaviour
+public class Coordinate
 {
-    public List<List<UnityEngine.Vector3>> vectors;
-    public List<List<BigInteger>> times;
-    public List<Boolean> thrusts;
-    public List<TextAsset> files;
-    public List<TrailRenderer> trails;
-    public List<int> trackers;
-    public List<GameObject> objects;
+    public float X { get; set; }
+    public float Y { get; set; }
+    public float Z { get; set; }
+    public UnityEngine.Vector3 Coords { get; set; }
+    public float Thrust { get; set; }
+    public Coordinate(UnityEngine.Vector3 coords, float thrust)
+    {
+        Coords = coords;
+        Thrust = thrust;
+    }
+}
 
-    public TextAsset file1;
-    public TextAsset file2;
-    public TextAsset file3;
-    public TextAsset file4;
+public class NewTrajectory : MonoBehaviour
+{
+    public TextAsset coordinateData;
+    public List<Coordinate> refuelerCoordinates = new List<Coordinate>();
+    public List<Coordinate> jwstCoordinates = new List<Coordinate>();
+    public List<Coordinate> earthCoordinates = new List<Coordinate>();
+    public List<Coordinate> moonCoordinates = new List<Coordinate>();
+
     public GameObject obj1;
     public GameObject obj2;
     public GameObject obj3;
@@ -30,168 +36,85 @@ public class Trajectory : MonoBehaviour
     public TrailRenderer trail4;
     public TrailRenderer trailT;
 
-    float oldTime = -1;
-    float newTime = 0;
-    BigInteger minTime = 6493275631;
-    BigInteger cycles = 200000;
-    BigInteger prevCycleEnd = 0;
+    int tracker = 0;
 
-
-    // Start is called before the first frame update
     void Start()
     {
-        //Time.timeScale = 4.0f;
-        //Time.fixedDeltaTime = 0.1f;
-        List<UnityEngine.Vector3> vectors1 = new List<UnityEngine.Vector3>();
-        List<UnityEngine.Vector3> vectors2 = new List<UnityEngine.Vector3>();
-        List<UnityEngine.Vector3> vectors3 = new List<UnityEngine.Vector3>();
-        List<UnityEngine.Vector3> vectors4 = new List<UnityEngine.Vector3>();
-        vectors = new List<List<UnityEngine.Vector3>>() { vectors1, vectors2, vectors3, vectors4 };
 
-        List<BigInteger> times1 = new List<BigInteger>();
-        List<BigInteger> times2 = new List<BigInteger>();
-        List<BigInteger> times3 = new List<BigInteger>();
-        List<BigInteger> times4 = new List<BigInteger>();
-        times = new List<List<BigInteger>>() { times1, times2, times3, times4 };
+        string[] coordinateRows = coordinateData.text.Split('\n'); // Divides .csv into rows
+        for (int i = 1; i < coordinateRows.Length; i++) // Loops through all rows
+        {
+            // Adds row contents to respective List
+            string[] coordinates = coordinateRows[i].Split(',');
+            refuelerCoordinates.Add(new Coordinate(new UnityEngine.Vector3(float.Parse(coordinates[1]), float.Parse(coordinates[2]), float.Parse(coordinates[3])), float.Parse(coordinates[4])));
+            jwstCoordinates.Add(new Coordinate(new UnityEngine.Vector3(float.Parse(coordinates[5]), float.Parse(coordinates[6]), float.Parse(coordinates[7])), 0f));
+            earthCoordinates.Add(new Coordinate(new UnityEngine.Vector3(float.Parse(coordinates[8]), float.Parse(coordinates[9]), float.Parse(coordinates[10])), 0f));
+            moonCoordinates.Add(new Coordinate(new UnityEngine.Vector3(float.Parse(coordinates[11]), float.Parse(coordinates[12]), float.Parse(coordinates[13])), 0f));
+        }
 
-        objects = new List<GameObject> { obj1, obj2, obj3, obj4 };
-        trackers = new List<int> { 0, 0, 0, 0 };
-        thrusts = new List<Boolean>();
-        files = new List<TextAsset> { file1, file2, file3, file4 };
-        trails = new List<TrailRenderer> { trail1, trail2, trail3, trail4 };
-
-
-        initialize();
-        thrustChecker();
-        normalizeTime();
-
-        
-        
     }
 
     // Update is called once per frame
     void Update()
     {
-        
-        newTime += Time.deltaTime;
-        //Debug.Log(newTime);
-        if (newTime > oldTime + 0.01)
+        if(tracker < 20000)
         {
-            for (BigInteger i = prevCycleEnd; i < prevCycleEnd + cycles; i++)
+            // Creates vectors out of information from the Lists, uses this to move around objects/trails
+            UnityEngine.Vector3 refuelerVector = refuelerCoordinates[tracker].Coords;
+            trail1.AddPosition(refuelerVector);
+            trail1.transform.position = refuelerVector;
+            obj1.transform.position = refuelerVector;
+
+            // Uses the current and previous points to make a "thrust" trail that's tangent to the actual orbit trail
+            trailT.Clear();
+            trailT.AddPosition(refuelerVector);
+            trailT.transform.position = refuelerVector;
+            UnityEngine.Vector3 previousRefuelerVector;
+
+            if (tracker > 1)
             {
-                for (int j = 0; j < 4; j++)
-                {
-                    if (trackers[j] < vectors[j].Count)
-                    {
-                        if (times[j][trackers[j]] == i)
-                        {
+                previousRefuelerVector = refuelerCoordinates[tracker - 1].Coords;
 
-                            trails[j].AddPosition(vectors[j][trackers[j]]);
-                            objects[j].transform.position = vectors[j][trackers[j]];
-                            trails[j].transform.position = vectors[j][trackers[j]];
+                //Finds the difference in each plane between new and old coordinate
+                float xDiff = refuelerVector.x - previousRefuelerVector.x;
+                float yDiff = refuelerVector.y - previousRefuelerVector.y;
+                float zDiff = refuelerVector.z - previousRefuelerVector.z;
 
+                trailT.AddPosition(previousRefuelerVector);
 
-                            if (j==0 && trackers[j] < thrusts.Count-1)
-                            {
-
-                                trailT.AddPosition(vectors[j][trackers[j]]);
-                                trailT.transform.position = vectors[j][trackers[j]];
-                                if (thrusts[trackers[j]])
-                                {
-                                    trailT.startColor = new Color(1, 0, 0, 1);
-                                    trailT.endColor = new Color(1, 0, 0, 1);
-                                }
-                                else
-                                {
-                                    trailT.startColor = new Color(1, 0, 0, 0);
-                                    trailT.endColor = new Color(1, 0, 0, 0);
-                                }
-                            }
-
-                            
-                            trackers[j]++;
-                            if(trackers[0]+1 > vectors[0].Count)
-                            {
-                                obj1.transform.localScale = new UnityEngine.Vector3(0, 0, 0);
-                            }
-                        }
-                    }
-                }
+                //Proportionally subtracts the differences to create a third point in line with the current and previous points
+                trailT.AddPosition(new UnityEngine.Vector3(previousRefuelerVector.x - xDiff * 20, previousRefuelerVector.y - yDiff * 20, previousRefuelerVector.z - zDiff * 20));
             }
-            prevCycleEnd += cycles;
-            oldTime = newTime;
-        }
-        
-    }
 
-    void initialize()
-    {
-        for (int i = 0; i < 4; i++)
-        {
-            string[] csvLines = files[i].text.Split('\n');
-            for (int j = 1; j < csvLines.Length; j++)
+
+
+            // Checks if thrust is active
+            if (refuelerCoordinates[tracker].Thrust == 1f)
             {
-                string[] lineData = csvLines[j].Split(',');
-                vectors[i].Add(new UnityEngine.Vector3(float.Parse(lineData[0])/10 - 10, float.Parse(lineData[2]) / 10 + 20, float.Parse(lineData[1]) / 10 + 20)); 
-            }
-        }
-    }
-
-    void thrustChecker()
-    {
-        for (int i = 0; i < 4; i++)
-        {
-            string[] csvLines = files[i].text.Split('\n');
-            for (int j = 1; j < csvLines.Length; j++)
+                trailT.startColor = new Color(1, 0, 0, 1);
+                trailT.endColor = new Color(1, 0, 0, 1);
+            } else
             {
-                string[] lineData = csvLines[j].Split(',');
-                if (i == 0)
-                {
-                    if (lineData[4].Length > 5)
-                    {
-                        thrusts.Add(false);
-                    }
-                    else
-                    {
-                        thrusts.Add(true);
-                    }
-                    
-                }
+                trailT.startColor = new Color(1, 0, 0, 0);
+                trailT.endColor = new Color(1, 0, 0, 0);
             }
-        }
-    }
 
-    void normalizeTime()
-    {
-        for (int i = 0; i < 4; i++)
-        {
-            string[] csvLines = files[i].text.Split('\n');
-            for (int j = 1; j < csvLines.Length; j++)
-            {
-                string[] lineData = csvLines[j].Split(',');
+            UnityEngine.Vector3 jwstVector = jwstCoordinates[tracker].Coords;
+            trail2.AddPosition(jwstVector);
+            trail2.transform.position = jwstVector;
+            obj2.transform.position = jwstVector;
 
-                if (lineData[3].Contains("."))
-                {
-                    times[i].Add(BigInteger.Parse(lineData[3].Replace(".", "")) - minTime);
-                }
-                else
-                {
-                    times[i].Add(BigInteger.Parse(lineData[3]) * 10 - minTime);
-                }
-            }
-        }
-        for (int i = 0; i < 4; i++)
-        {
-            for (int j = 0; j < times[i].Count - 2; j++)
-            {
-                if (times[i][j] == times[i][j + 1])
-                {
-                    times[i].RemoveAt(j + 1);
-                    vectors[i].RemoveAt(j + 1);
-                    thrusts.RemoveAt(j + 1);
-                    j--;
-                }
-            }
+            UnityEngine.Vector3 earthVector = earthCoordinates[tracker].Coords;
+            trail3.AddPosition(earthVector);
+            trail3.transform.position = earthVector;
+            obj3.transform.position = earthVector;
+
+            UnityEngine.Vector3 moonVector = moonCoordinates[tracker].Coords;
+            trail4.AddPosition(moonVector);
+            trail4.transform.position = moonVector;
+            obj4.transform.position = moonVector;
+            tracker++;
+
         }
     }
 }
